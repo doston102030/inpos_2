@@ -1,0 +1,91 @@
+API INTEGRATSIYA HISOBOTI
+============================================
+Sana: 2026-06-27
+Tekshirildi: src/lib/api.js va uni ishlatuvchi barcha sahifalar,
+foydalanuvchi yuborgan haqiqiy OpenAPI spetsifikatsiyasi asosida solishtirildi.
+
+ESLATMA: backend (http://147.90.13.254:8080) /api/products kabi endpointlar
+token talab qiladi (401 qaytardi), test PIN berilmagani uchun haqiqiy
+autentifikatsiya bilan jonli (live) so'rovlar yuborib test qila olmadim.
+Quyidagi tahlil OpenAPI spetsifikatsiyasi (schema/shape) bilan frontend
+kodini solishtirish asosida qilindi va loyihaning "npx vite build"
+muvaffaqiyatli o'tishi bilan tasdiqlandi.
+
+TUZATILGAN MUHIM XATOLAR
+----------------------------
+1. GET /api/products va GET /api/orders — backend bu ikkisini ENDI
+   sahifalangan (Pageable) ko'rinishda qaytaradi: {content: [...], page: {...}}.
+   Frontend esa natijani to'g'ridan-to'g'ri massiv deb hisoblab ".map()"
+   chaqirardi — bu ilovani ishga tushganda butunlay "is not a function"
+   xatosi bilan qulatishi mumkin edi.
+   Tuzatildi: src/lib/api.js — listProducts/listOrders endi page=0,
+   size=2000 bilan so'raydi va natijadan faqat ".content" massivini oladi.
+
+2. POST /api/sms/send — backend "recipients" maydonini DOIM massiv
+   (array of string) deb kutadi, lekin frontend bitta raqam bo'lsa uni
+   alohida satr (string) qilib yuborardi — bu so'rovni backend validatsiyasi
+   rad etishi mumkin edi.
+   Tuzatildi: src/lib/api.js (sendSms) va src/pages/SMS.jsx — endi har doim
+   massiv yuboriladi.
+
+3. POS'da "Nasiya" (qarzga) savdo yakunlanganda kassa va savdoni
+   serverga yuborish (completeSale) va qarzni yozish (addDebt) bir-biriga
+   bog'lanmagan, kutilmagan (await qilinmagan) holda ishga tushirilardi:
+   - Savatcha va "muvaffaqiyatli" xabari server javobini kutmasdan darhol
+     ko'rsatilardi.
+   - Agar createOrder server tomonida xato bersa (tarmoq, ombor yetishmasligi
+     va h.k.), foydalanuvchi "Savdo yakunlandi" deb noto'g'ri xabar ko'rardi,
+     savatcha esa allaqachon tozalangan bo'lib qayta urinib bo'lmaydi.
+   - Nasiya holatida qarz yozuvi savdo muvaffaqiyatsiz bo'lsa ham
+     yaratilib qolardi (ikkisi bir-biriga bog'liq emas edi).
+   Tuzatildi: src/App.jsx (completeSale endi natija/null qaytaradi) va
+   src/pages/POS.jsx (finish() endi async, natijani kutadi, savdo
+   muvaffaqiyatli bo'lmasa savatchani tozalamaydi va qarz yozmaydi;
+   tugma bosilganda "Yakunlanmoqda…" holatini ko'rsatadi, qayta bosishni
+   bloklaydi).
+
+4. StockMovement turi ADJUSTMENT uchun frontend'da yorliq yo'q edi — xom
+   "ADJUSTMENT" so'zi chiqib ketardi. Tuzatildi: "Tuzatish" yorlig'i qo'shildi.
+
+5. (2026-06-27, yangi spetsifikatsiya) Backend "CREDIT" paymentMethod,
+   OrderRequest.customerName/customerPhone, DebtRequest/Response.orderId,
+   LoginResponse.id, StockMovementResponse.reason va
+   SalesReportResponse/DailySalesResponse.creditSalesAmount qo'shdi.
+   Frontend mos ravishda yangilandi:
+   - src/lib/api.js: PAY_TO_API/PAY_FROM_API'ga "Nasiya" ↔ "CREDIT" qo'shildi.
+   - src/App.jsx: completeSale endi Nasiya savdosida customerName/Phone'ni
+     buyurtmaga qo'shib yuboradi; addDebt endi orderId'ni qarz yozuviga
+     bog'laydi.
+   - src/pages/POS.jsx: finish() — savdo buyurtmasi (order.id) qarz bilan
+     bog'lanadi.
+   - src/pages/Login.jsx: foydalanuvchi obyektiga id saqlanadi.
+   - src/lib/api.js: fromApiStockMovement endi "reason"ni o'qiydi.
+   - src/pages/Dashboard.jsx: "Bugungi nasiya" (creditSalesAmount) KPI
+     qo'shildi.
+   Natija: Nasiya savdosi endi backend'da to'g'ri "CREDIT" sifatida
+   yoziladi va tegishli qarz yozuviga bog'lanadi — avvalgi
+   "naqd sifatida yoziladi" muammosi to'liq hal bo'ldi.
+
+HAL QILINMAGAN / KUZATISH KERAK BO'LGAN
+----------------------------------------------------------------
+- Pageable standart hajmi (products=30, orders=20) — frontend size=2000
+  bilan to'liq ro'yxatni so'raydi; agar yozuvlar soni shu chegaradan
+  oshsa, frontend'ga haqiqiy sahifalash kerak bo'ladi (KERAKLI_API.txt'ga
+  qarang).
+
+TASDIQLANGAN, MUAMMO TOPILMAGAN QISMLAR
+----------------------------------------------------------------
+- ProductRequest, OutflowRequest, DebtRequest, UserRequest, RestockRequest,
+  SettingsRequest — frontend'dagi to'ldirish (payload) mantiqi spetsifikatsiya
+  bilan mos.
+- OrderRequest.discountAmount maksimal chegarasi (200000) POS.jsx'da allaqachon
+  to'g'ri tekshirilgan.
+- "npx vite build" muvaffaqiyatli yakunlandi — sintaktik/import xatolari yo'q.
+
+TAVSIYA
+----------------------------------------------------------------
+Haqiqiy PIN/login ma'lumotlari bilan ilovani brauzerda ochib, kamida
+quyidagilarni qo'lda tekshirib chiqish kerak: mahsulotlar ro'yxati to'liq
+yuklanishi, savdo (POS) yakunlanishi, SMS yuborish, kirim/chiqim qo'shish.
+Men buni avtomatik tarzda test qila olmadim, chunki tizimga kirish uchun
+amaldagi xodim PIN kodi yo'q edi.

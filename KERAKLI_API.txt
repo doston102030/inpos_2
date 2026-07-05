@@ -1,0 +1,35 @@
+QO'SHIMCHA API/BACKEND O'ZGARISHLARI — HOLATI
+============================================
+Sana: 2026-06-27 (yangilandi)
+Manba: "Orders Doston API" v1.0 spetsifikatsiyasi
+
+✅ BACKEND TOMONDAN HAL QILINDI (oldingi so'rovlar bo'yicha)
+--------------------------------------------------
+1. OrderRequest.paymentMethod enum'iga "CREDIT" qo'shildi — endi Nasiya
+   savdosi to'g'ri belgilanadi. Frontend yangilandi (PAY_TO_API'da
+   "Nasiya" → "CREDIT").
+2. OrderRequest'ga customerName/customerPhone qo'shildi — frontend endi
+   Nasiya savdosida bu maydonlarni to'ldirib yuboradi.
+3. DebtRequest/DebtResponse'ga "orderId" qo'shildi — frontend endi qarz
+   yozuvini tegishli buyurtmaga bog'laydi (createOrder natijasidagi id
+   orqali).
+4. LoginResponse'ga "id" qo'shildi — frontend foydalanuvchi obyektiga
+   endi id'ni ham saqlaydi.
+5. StockMovementResponse'ga "reason" qo'shildi — frontend
+   fromApiStockMovement endi buni o'qiydi (hozircha UI'da ko'rsatilmaydi,
+   lekin tayyor).
+6. SalesReportResponse/DailySalesResponse'ga "creditSalesAmount"
+   qo'shildi — Dashboard'da "Bugungi nasiya" ko'rsatkichi qo'shildi.
+
+⚠️ HALI HAM OCHIQ / DIQQAT TALAB QILADI
+--------------------------------------------------
+1. Pageable javoblari (PagedModel): GET /api/products standart hajmi 30,
+   GET /api/orders standart hajmi 20 (vaqt bo'yicha kamayish tartibida).
+   Frontend hozir har ikkisini ham size=2000 bilan so'raydi va to'liq
+   ro'yxatni bitta sahifada ko'rsatadi (chunki sahifalash UI yo'q).
+   Agar mahsulot/savdo soni 2000 dan oshsa, ma'lumot kesilib qoladi —
+   shu son katta do'kon uchun real bo'lib qolsa, frontend'ga haqiqiy
+   sahifalash (page/size/totalPages) qo'shish kerak bo'ladi.
+2. DebtPayRequest faqat "amount" oladi — qisman to'lov backend tomonda
+   qanday hisoblanishini (status PARTIAL/PAID o'tishi) hali jonli sinab
+   ko'rilmadi (pastdagi eslatmaga qarang).
